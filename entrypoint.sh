@@ -15,6 +15,9 @@ fi
 echo "Repository: ${REPO_FULL_NAME}"
 echo "PR Number: ${PR_NUMBER}"
 
+# --- Fix git safe directory for PyDriller ---
+git config --global --add safe.directory "${GITHUB_WORKSPACE}"
+
 # --- 2. Export configuration as environment variables ---
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
 export DEEPSEEK_BASE_URL="${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}"
