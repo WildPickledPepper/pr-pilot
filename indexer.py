@@ -122,7 +122,8 @@ def analyze_co_changes(repo_path: str, repo_name_cleaned: str):
             # 过滤掉已删除的文件 (f.new_path is None)
             supported_files = sorted([
                 f.new_path for f in commit.modified_files
-                if f.new_path and lang_registry.is_supported(f.new_path)
+                if f.new_path and (lang_registry.is_supported(f.new_path) or
+                                   lang_registry.is_text_file_candidate(f.new_path))
             ])
             
             # 如果该 commit 中至少修改了两个受支持语言的文件
@@ -360,11 +361,12 @@ def main():
         elif py_files:
             print(f"Found {len(py_files)} Python files but pyan is not installed — skipping Python call graph.")
 
-        # C/C++/Java/Go/JS/TS: use tree-sitter (generates .json)
-        for ts_lang in ("c", "cpp", "java", "go", "javascript", "typescript"):
-            lang_files = all_supported_files.get(ts_lang, [])
+        # C/C++/Java/Go/JS/TS and all other tree-sitter languages: use tree-sitter (generates .json)
+        for lang_config in lang_registry.get_tree_sitter_languages():
+            ts_lang = lang_config.tree_sitter_language
+            lang_files = all_supported_files.get(lang_config.name, [])
             if lang_files:
-                print(f"Found {len(lang_files)} {ts_lang} files — generating call graph with tree-sitter...")
+                print(f"Found {len(lang_files)} {lang_config.name} files — generating call graph with tree-sitter...")
                 ts_graph = callgraph_builder.build_callgraph_tree_sitter(lang_files, ts_lang)
                 json_path = os.path.join(call_graph_dir, f"{repo_name}_ts_{ts_lang}_call_graph.json")
                 callgraph_builder.save_callgraph_json(ts_graph, json_path)
@@ -378,19 +380,37 @@ def main():
     analyze_co_changes(absolute_path, repo_name)
     analyze_clones(absolute_path, repo_name)
 
-    # --- 通用流程：文件遍历 (支持所有语言) ---
+    # --- 通用流程：文件遍历 (支持 Tier 1 语言 + Tier 2 文本文件) ---
+    from utils.language_registry import MAX_TEXT_FILE_SIZE
     def local_file_iterator(path, ignore_list):
         for root, dirs, files in os.walk(path, topdown=True):
             dirs[:] = [d for d in dirs if d not in ignore_list]
             for file in files:
+                file_path = os.path.join(root, file)
+                relative_path = os.path.relpath(file_path, path)
+
                 if lang_registry.is_supported(file):
-                    file_path = os.path.join(root, file)
-                    relative_path = os.path.relpath(file_path, path)
+                    # Tier 1: registered language
                     try:
                         with open(file_path, 'r', encoding='utf-8') as f_content:
                             yield relative_path, f_content.read()
                     except (IOError, UnicodeDecodeError) as e:
                         print(f"  - Skipping file {relative_path}: {e}")
+
+                elif lang_registry.is_text_file_candidate(file):
+                    # Tier 2: unregistered but possibly text
+                    try:
+                        file_size = os.path.getsize(file_path)
+                        if file_size > MAX_TEXT_FILE_SIZE:
+                            continue
+                        with open(file_path, 'rb') as f_bin:
+                            raw = f_bin.read(8192)
+                            if b'\x00' in raw:
+                                continue  # binary file
+                        with open(file_path, 'r', encoding='utf-8') as f_content:
+                            yield relative_path, f_content.read()
+                    except (IOError, UnicodeDecodeError):
+                        pass  # skip unreadable files silently
 
     file_iterator = local_file_iterator(args.path, args.ignore)
 

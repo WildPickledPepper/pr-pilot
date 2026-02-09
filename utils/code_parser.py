@@ -1,4 +1,5 @@
 import ast
+import importlib
 import os
 from typing import List, Tuple
 
@@ -69,31 +70,38 @@ def parse_python_file_content(content: str, file_path_for_logging: str) -> List[
     return chunks
 
 
-# --- tree-sitter based C/C++ parsing ---
+# --- tree-sitter parser factory ---
+
+# Maps tree-sitter language name -> (module_name, function_name)
+_TS_LANGUAGE_MODULES = {
+    "c": ("tree_sitter_c", "language"),
+    "cpp": ("tree_sitter_cpp", "language"),
+    "java": ("tree_sitter_java", "language"),
+    "go": ("tree_sitter_go", "language"),
+    "javascript": ("tree_sitter_javascript", "language"),
+    "typescript": ("tree_sitter_typescript", "language_typescript"),
+    "rust": ("tree_sitter_rust", "language"),
+    "ruby": ("tree_sitter_ruby", "language"),
+    "php": ("tree_sitter_php", "language_php"),
+    "c_sharp": ("tree_sitter_c_sharp", "language"),
+    "kotlin": ("tree_sitter_kotlin", "language"),
+    "scala": ("tree_sitter_scala", "language"),
+    "lua": ("tree_sitter_lua", "language"),
+    "bash": ("tree_sitter_bash", "language"),
+    "zig": ("tree_sitter_zig", "language"),
+}
+
 
 def _get_ts_parser(language_name: str):
-    """Get a tree-sitter Parser for the given language."""
+    """Get a tree-sitter Parser for the given language using dynamic import."""
     from tree_sitter import Language, Parser
-    if language_name == "c":
-        import tree_sitter_c
-        lang = Language(tree_sitter_c.language())
-    elif language_name == "cpp":
-        import tree_sitter_cpp
-        lang = Language(tree_sitter_cpp.language())
-    elif language_name == "java":
-        import tree_sitter_java
-        lang = Language(tree_sitter_java.language())
-    elif language_name == "go":
-        import tree_sitter_go
-        lang = Language(tree_sitter_go.language())
-    elif language_name == "javascript":
-        import tree_sitter_javascript
-        lang = Language(tree_sitter_javascript.language())
-    elif language_name == "typescript":
-        import tree_sitter_typescript
-        lang = Language(tree_sitter_typescript.language_typescript())
-    else:
+    entry = _TS_LANGUAGE_MODULES.get(language_name)
+    if entry is None:
         raise ValueError(f"No tree-sitter grammar for language: {language_name}")
+    module_name, func_name = entry
+    mod = importlib.import_module(module_name)
+    lang_func = getattr(mod, func_name)
+    lang = Language(lang_func())
     return Parser(lang)
 
 
@@ -357,22 +365,103 @@ def parse_generic_file_content(content: str, file_path: str, language: str, gram
         return []
 
 
+def parse_text_file_content(content: str, file_path: str) -> List[Tuple[str, str, int, int]]:
+    """Tier 2 fallback: split text files into chunks by blank-line paragraphs.
+
+    1. Split on blank lines to preserve logical structure.
+    2. Merge small paragraphs (< 10 lines) with their neighbors.
+    3. Split large paragraphs (> 60 lines) with 50-line windows + 10-line overlap.
+
+    Returns list of (chunk_name, text, start_line, end_line).
+    """
+    lines = content.split('\n')
+    if not lines or (len(lines) == 1 and not lines[0].strip()):
+        return []
+
+    # Step 1: Split into paragraphs by blank lines
+    paragraphs = []  # list of (start_line_0idx, [lines])
+    current_start = 0
+    current_lines = []
+    for i, line in enumerate(lines):
+        if line.strip() == '' and current_lines:
+            paragraphs.append((current_start, current_lines))
+            current_lines = []
+            current_start = i + 1
+        else:
+            if not current_lines:
+                current_start = i
+            current_lines.append(line)
+    if current_lines:
+        paragraphs.append((current_start, current_lines))
+
+    if not paragraphs:
+        return []
+
+    # Step 2: Merge small paragraphs (< 10 lines)
+    merged = []
+    buf_start = paragraphs[0][0]
+    buf_lines = []
+    for start, plines in paragraphs:
+        if buf_lines and len(buf_lines) + len(plines) > 60:
+            merged.append((buf_start, buf_lines))
+            buf_start = start
+            buf_lines = list(plines)
+        else:
+            if not buf_lines:
+                buf_start = start
+            buf_lines.extend(plines)
+    if buf_lines:
+        merged.append((buf_start, buf_lines))
+
+    # Step 3: Split large chunks (> 60 lines) with overlap
+    chunks = []
+    base_name = os.path.splitext(os.path.basename(file_path))[0]
+    chunk_idx = 1
+    for start_0, chunk_lines in merged:
+        if len(chunk_lines) <= 60:
+            start_1 = start_0 + 1
+            end_1 = start_0 + len(chunk_lines)
+            name = f"{base_name}_chunk_{chunk_idx}_L{start_1}-{end_1}"
+            chunks.append((name, '\n'.join(chunk_lines), start_1, end_1))
+            chunk_idx += 1
+        else:
+            window = 50
+            overlap = 10
+            offset = 0
+            while offset < len(chunk_lines):
+                window_lines = chunk_lines[offset:offset + window]
+                s1 = start_0 + offset + 1
+                e1 = start_0 + offset + len(window_lines)
+                name = f"{base_name}_chunk_{chunk_idx}_L{s1}-{e1}"
+                chunks.append((name, '\n'.join(window_lines), s1, e1))
+                chunk_idx += 1
+                offset += window - overlap
+    return chunks
+
+
 def parse_file_content(content: str, file_path: str) -> List[Tuple[str, str, int, int]]:
     """Dispatcher: route to the correct parser based on file extension.
+
+    - Tier 1 registered languages: AST-based parsing (Python/C/C++/generic grammar).
+    - Tier 2 unregistered text files: blank-line paragraph chunking.
 
     Returns list of (name, source_code, start_line, end_line).
     """
     lang_config = registry.detect_language(file_path)
-    if lang_config is None:
-        return []
 
-    if lang_config.name == "python":
-        return parse_python_file_content(content, file_path)
-    elif lang_config.name in ("c", "cpp"):
-        # C/C++ use the specialized declarator-based parser
-        return parse_c_cpp_file_content(content, file_path, lang_config.tree_sitter_language)
-    elif lang_config.grammar and lang_config.tree_sitter_language:
-        # All other languages use the generic grammar-driven parser
-        return parse_generic_file_content(content, file_path, lang_config.tree_sitter_language, lang_config.grammar)
-    else:
-        return []
+    if lang_config is not None:
+        # Tier 1: registered language
+        if lang_config.name == "python":
+            return parse_python_file_content(content, file_path)
+        elif lang_config.name in ("c", "cpp"):
+            return parse_c_cpp_file_content(content, file_path, lang_config.tree_sitter_language)
+        elif lang_config.grammar and lang_config.tree_sitter_language:
+            return parse_generic_file_content(content, file_path, lang_config.tree_sitter_language, lang_config.grammar)
+        else:
+            return []
+
+    # Tier 2: unregistered text file — use generic text chunking
+    if registry.is_text_file_candidate(file_path):
+        return parse_text_file_content(content, file_path)
+
+    return []

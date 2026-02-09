@@ -127,8 +127,9 @@ class GitHubProvider(GitProvider):
             else:
                 print("⚠️ Warning: Pyan call graph file exists but failed to parse.")
 
-        # Load tree-sitter .json call graphs (C/C++/Java/Go/JS/TS)
-        for ts_lang in ("c", "cpp", "java", "go", "javascript", "typescript"):
+        # Load tree-sitter .json call graphs (all tree-sitter languages)
+        for lang_config in lang_registry.get_tree_sitter_languages():
+            ts_lang = lang_config.tree_sitter_language
             json_file_path = os.path.join(config.CALL_GRAPH_DIR, f"{repo_name_cleaned}_ts_{ts_lang}_call_graph.json")
             if os.path.exists(json_file_path):
                 print(f"Loading tree-sitter {ts_lang} call graph from: {json_file_path}")
@@ -166,8 +167,10 @@ class GitHubProvider(GitProvider):
         # 2. 遍历 PR 中的所有文件
         files = pr.get_files()
         for file in files:
-            # 只处理被修改或新增的受支持语言文件
-            if file.status not in ['modified', 'added'] or not lang_registry.is_supported(file.filename):
+            # Process modified/added files for supported languages and Tier 2 text files
+            if file.status not in ['modified', 'added']:
+                continue
+            if not lang_registry.is_supported(file.filename) and not lang_registry.is_text_file_candidate(file.filename):
                 continue
             
             analysis_result["changed_files"].append(file.filename)

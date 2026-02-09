@@ -3,6 +3,19 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set
 import os
 
+# --- Tier 2 constants: binary file detection + text file size limit ---
+BINARY_EXTENSIONS = frozenset({
+    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.svg', '.webp',
+    '.mp3', '.mp4', '.wav', '.avi', '.mov',
+    '.zip', '.tar', '.gz', '.bz2', '.xz', '.7z', '.rar',
+    '.exe', '.dll', '.so', '.dylib', '.bin', '.wasm',
+    '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+    '.pyc', '.class', '.o', '.obj', '.a', '.lib',
+    '.ttf', '.otf', '.woff', '.woff2',
+    '.db', '.sqlite', '.sqlite3',
+})
+MAX_TEXT_FILE_SIZE = 512 * 1024  # 512 KB
+
 
 @dataclass
 class TreeSitterGrammar:
@@ -158,6 +171,160 @@ class LanguageRegistry:
                 class_name_type="type_identifier",
             ),
         ))
+        # --- Tier 1 expansion: 9 additional languages ---
+        self.register(LanguageConfig(
+            name="rust",
+            extensions=[".rs"],
+            code_fence_tag="rust",
+            pmd_cpd_language="",
+            tree_sitter_language="rust",
+            grammar=TreeSitterGrammar(
+                function_types=["function_item"],
+                class_types=["struct_item", "impl_item"],
+                class_body_type="declaration_list",
+                function_body_type="block",
+                call_types=["call_expression"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="type_identifier",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="ruby",
+            extensions=[".rb"],
+            code_fence_tag="ruby",
+            pmd_cpd_language="ruby",
+            tree_sitter_language="ruby",
+            grammar=TreeSitterGrammar(
+                function_types=["method", "singleton_method"],
+                class_types=["class", "module"],
+                class_body_type="body_statement",
+                function_body_type="body_statement",
+                call_types=["call"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="constant",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="php",
+            extensions=[".php"],
+            code_fence_tag="php",
+            pmd_cpd_language="php",
+            tree_sitter_language="php",
+            grammar=TreeSitterGrammar(
+                function_types=["function_definition", "method_declaration"],
+                class_types=["class_declaration"],
+                class_body_type="declaration_list",
+                function_body_type="compound_statement",
+                call_types=["call_expression"],
+                container_types=["namespace_definition"],
+                name_strategy="field_name",
+                class_name_type="name",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="csharp",
+            extensions=[".cs"],
+            code_fence_tag="csharp",
+            pmd_cpd_language="cs",
+            tree_sitter_language="c_sharp",
+            grammar=TreeSitterGrammar(
+                function_types=["method_declaration", "constructor_declaration"],
+                class_types=["class_declaration", "interface_declaration"],
+                class_body_type="declaration_list",
+                function_body_type="block",
+                call_types=["invocation_expression"],
+                container_types=["namespace_declaration"],
+                name_strategy="field_name",
+                class_name_type="identifier",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="kotlin",
+            extensions=[".kt", ".kts"],
+            code_fence_tag="kotlin",
+            pmd_cpd_language="kotlin",
+            tree_sitter_language="kotlin",
+            grammar=TreeSitterGrammar(
+                function_types=["function_declaration"],
+                class_types=["class_declaration", "object_declaration"],
+                class_body_type="class_body",
+                function_body_type="function_body",
+                call_types=["call_expression"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="identifier",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="scala",
+            extensions=[".scala"],
+            code_fence_tag="scala",
+            pmd_cpd_language="scala",
+            tree_sitter_language="scala",
+            grammar=TreeSitterGrammar(
+                function_types=["function_definition"],
+                class_types=["class_definition", "object_definition"],
+                class_body_type="template_body",
+                function_body_type="block",
+                call_types=["call_expression"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="identifier",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="lua",
+            extensions=[".lua"],
+            code_fence_tag="lua",
+            pmd_cpd_language="lua",
+            tree_sitter_language="lua",
+            grammar=TreeSitterGrammar(
+                function_types=["function_declaration", "function_definition_statement"],
+                class_types=[],
+                class_body_type="",
+                function_body_type="block",
+                call_types=["function_call"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="bash",
+            extensions=[".sh", ".bash"],
+            code_fence_tag="bash",
+            pmd_cpd_language="",
+            tree_sitter_language="bash",
+            grammar=TreeSitterGrammar(
+                function_types=["function_definition"],
+                class_types=[],
+                class_body_type="",
+                function_body_type="compound_statement",
+                call_types=["command"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="",
+            ),
+        ))
+        self.register(LanguageConfig(
+            name="zig",
+            extensions=[".zig"],
+            code_fence_tag="zig",
+            pmd_cpd_language="",
+            tree_sitter_language="zig",
+            grammar=TreeSitterGrammar(
+                function_types=["function_declaration"],
+                class_types=[],
+                class_body_type="",
+                function_body_type="block",
+                call_types=["call_expression"],
+                container_types=[],
+                name_strategy="field_name",
+                class_name_type="",
+            ),
+        ))
 
     def register(self, config: LanguageConfig):
         self._languages[config.name] = config
@@ -200,14 +367,31 @@ class LanguageRegistry:
         return ""
 
     def get_pmd_languages(self) -> List[str]:
-        """Return unique PMD/CPD language identifiers for all registered languages."""
+        """Return unique PMD/CPD language identifiers for all registered languages.
+        Skips languages with no PMD support (empty pmd_cpd_language)."""
         seen = set()
         result = []
         for lang in self._languages.values():
-            if lang.pmd_cpd_language not in seen:
+            if lang.pmd_cpd_language and lang.pmd_cpd_language not in seen:
                 seen.add(lang.pmd_cpd_language)
                 result.append(lang.pmd_cpd_language)
         return result
+
+    def get_tree_sitter_languages(self) -> List["LanguageConfig"]:
+        """Return all language configs that have tree-sitter support."""
+        return [lang for lang in self._languages.values()
+                if lang.tree_sitter_language is not None]
+
+    def is_binary_extension(self, file_path: str) -> bool:
+        """Check if a file has a known binary extension."""
+        _, ext = os.path.splitext(file_path)
+        return ext.lower() in BINARY_EXTENSIONS
+
+    def is_text_file_candidate(self, file_path: str) -> bool:
+        """Check if a file could be a Tier 2 text file (not a registered language, not binary)."""
+        if self.is_supported(file_path):
+            return False  # Already a Tier 1 language
+        return not self.is_binary_extension(file_path)
 
 
 # Module-level convenience instance

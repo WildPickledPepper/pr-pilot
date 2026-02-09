@@ -6,7 +6,7 @@ FROM python:3.11-slim
 # jq: for parsing GitHub event payload
 # curl/unzip: for downloading PMD
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends git default-jre-headless jq curl unzip && \
+    apt-get install -y --no-install-recommends git default-jre-headless jq curl unzip build-essential && \
     rm -rf /var/lib/apt/lists/*
 
 # Download PMD for clone detection

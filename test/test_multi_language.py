@@ -71,7 +71,17 @@ class TestLanguageRegistry(unittest.TestCase):
         self.assertTrue(self.reg.is_supported("e.go"))
         self.assertTrue(self.reg.is_supported("f.js"))
         self.assertTrue(self.reg.is_supported("g.ts"))
-        self.assertFalse(self.reg.is_supported("h.rs"))
+        self.assertTrue(self.reg.is_supported("h.rs"))
+        self.assertTrue(self.reg.is_supported("i.rb"))
+        self.assertTrue(self.reg.is_supported("j.php"))
+        self.assertTrue(self.reg.is_supported("k.cs"))
+        self.assertTrue(self.reg.is_supported("l.kt"))
+        self.assertTrue(self.reg.is_supported("m.scala"))
+        self.assertTrue(self.reg.is_supported("n.lua"))
+        self.assertTrue(self.reg.is_supported("o.sh"))
+        self.assertTrue(self.reg.is_supported("p.zig"))
+        self.assertFalse(self.reg.is_supported("q.md"))
+        self.assertFalse(self.reg.is_supported("r.yml"))
 
     def test_strip_extension(self):
         self.assertEqual(self.reg.strip_extension("src/main.py"), "src/main")
@@ -96,6 +106,17 @@ class TestLanguageRegistry(unittest.TestCase):
         self.assertIn(".go", exts)
         self.assertIn(".js", exts)
         self.assertIn(".ts", exts)
+        self.assertIn(".rs", exts)
+        self.assertIn(".rb", exts)
+        self.assertIn(".php", exts)
+        self.assertIn(".cs", exts)
+        self.assertIn(".kt", exts)
+        self.assertIn(".kts", exts)
+        self.assertIn(".scala", exts)
+        self.assertIn(".lua", exts)
+        self.assertIn(".sh", exts)
+        self.assertIn(".bash", exts)
+        self.assertIn(".zig", exts)
 
     def test_get_pmd_languages(self):
         pmd_langs = self.reg.get_pmd_languages()
@@ -233,7 +254,8 @@ class Foo:
 
     def test_unsupported_returns_empty(self):
         from utils.code_parser import parse_file_content
-        results = parse_file_content("some content", "data.json")
+        # Binary file extensions should return empty
+        results = parse_file_content("some content", "data.png")
         self.assertEqual(results, [])
 
 
@@ -634,6 +656,471 @@ function process(data: number): number {
         self.assertIn(validate_node, graph[process_node])
 
         os.unlink(tmpfile)
+
+
+class TestNewLanguageDetection(unittest.TestCase):
+    """Tests for detection of the 9 new Tier 1 languages."""
+
+    def setUp(self):
+        from utils.language_registry import LanguageRegistry
+        self.reg = LanguageRegistry()
+
+    def test_detect_rust(self):
+        lang = self.reg.detect_language("src/main.rs")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "rust")
+        self.assertEqual(lang.tree_sitter_language, "rust")
+
+    def test_detect_ruby(self):
+        lang = self.reg.detect_language("app/models/user.rb")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "ruby")
+
+    def test_detect_php(self):
+        lang = self.reg.detect_language("src/Controller.php")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "php")
+
+    def test_detect_csharp(self):
+        lang = self.reg.detect_language("src/Program.cs")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "csharp")
+
+    def test_detect_kotlin(self):
+        for ext in (".kt", ".kts"):
+            lang = self.reg.detect_language(f"src/Main{ext}")
+            self.assertIsNotNone(lang, f"Failed for extension {ext}")
+            self.assertEqual(lang.name, "kotlin")
+
+    def test_detect_scala(self):
+        lang = self.reg.detect_language("src/App.scala")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "scala")
+
+    def test_detect_lua(self):
+        lang = self.reg.detect_language("scripts/init.lua")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "lua")
+
+    def test_detect_bash(self):
+        for ext in (".sh", ".bash"):
+            lang = self.reg.detect_language(f"scripts/deploy{ext}")
+            self.assertIsNotNone(lang, f"Failed for extension {ext}")
+            self.assertEqual(lang.name, "bash")
+
+    def test_detect_zig(self):
+        lang = self.reg.detect_language("src/main.zig")
+        self.assertIsNotNone(lang)
+        self.assertEqual(lang.name, "zig")
+
+
+class TestTier2Utilities(unittest.TestCase):
+    """Tests for Tier 2 binary detection and text file candidate logic."""
+
+    def setUp(self):
+        from utils.language_registry import LanguageRegistry
+        self.reg = LanguageRegistry()
+
+    def test_binary_extension_detection(self):
+        self.assertTrue(self.reg.is_binary_extension("image.png"))
+        self.assertTrue(self.reg.is_binary_extension("archive.zip"))
+        self.assertTrue(self.reg.is_binary_extension("font.woff2"))
+        self.assertTrue(self.reg.is_binary_extension("data.sqlite3"))
+        self.assertFalse(self.reg.is_binary_extension("readme.md"))
+        self.assertFalse(self.reg.is_binary_extension("config.yml"))
+        self.assertFalse(self.reg.is_binary_extension("main.py"))
+
+    def test_text_file_candidate(self):
+        # .md is not registered and not binary -> Tier 2 candidate
+        self.assertTrue(self.reg.is_text_file_candidate("readme.md"))
+        self.assertTrue(self.reg.is_text_file_candidate("config.yml"))
+        self.assertTrue(self.reg.is_text_file_candidate("app.dart"))
+        # .py is registered -> not a Tier 2 candidate (it's Tier 1)
+        self.assertFalse(self.reg.is_text_file_candidate("main.py"))
+        self.assertFalse(self.reg.is_text_file_candidate("main.rs"))
+        # .png is binary -> not a candidate
+        self.assertFalse(self.reg.is_text_file_candidate("image.png"))
+
+    def test_pmd_languages_exclude_empty(self):
+        pmd_langs = self.reg.get_pmd_languages()
+        self.assertIn("python", pmd_langs)
+        self.assertIn("ruby", pmd_langs)
+        self.assertNotIn("", pmd_langs)
+        # Rust, Bash, Zig have empty pmd_cpd_language -> should not appear
+        # (they map to "" which is excluded)
+
+    def test_get_tree_sitter_languages(self):
+        ts_langs = self.reg.get_tree_sitter_languages()
+        ts_names = [l.name for l in ts_langs]
+        # Python uses ast, not tree-sitter
+        self.assertNotIn("python", ts_names)
+        # All tree-sitter languages should be present
+        for name in ("c", "cpp", "java", "go", "javascript", "typescript",
+                      "rust", "ruby", "php", "csharp", "kotlin", "scala",
+                      "lua", "bash", "zig"):
+            self.assertIn(name, ts_names)
+
+
+class TestRustParsing(unittest.TestCase):
+    """Tests for Rust parsing via tree-sitter"""
+
+    def test_rust_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        rust_code = """
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+fn main() {
+    let result = add(1, 2);
+}
+"""
+        results = parse_file_content(rust_code, "main.rs")
+        names = [r[0] for r in results]
+        self.assertIn("add", names)
+        self.assertIn("main", names)
+
+    def test_rust_impl_method_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        rust_code = """
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl Point {
+    fn new(x: f64, y: f64) -> Self {
+        Point { x, y }
+    }
+
+    fn distance(&self) -> f64 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+}
+"""
+        results = parse_file_content(rust_code, "point.rs")
+        names = [r[0] for r in results]
+        self.assertIn("Point", names)  # struct_item
+        self.assertIn("Point.new", names)  # impl method
+        self.assertIn("Point.distance", names)
+
+    def test_rust_callgraph(self):
+        import tempfile
+        from utils.callgraph_builder import build_callgraph_tree_sitter
+
+        rust_code = """
+fn helper() -> i32 {
+    42
+}
+
+fn main() {
+    let x = helper();
+}
+"""
+        tmpfile = os.path.join(tempfile.gettempdir(), "test_cg.rs")
+        with open(tmpfile, "w") as f:
+            f.write(rust_code)
+
+        graph = build_callgraph_tree_sitter([tmpfile], "rust")
+        self.assertGreater(len(graph), 0)
+
+        main_node = [k for k in graph if "main" in k and "helper" not in k][0]
+        helper_node = [k for k in graph if "helper" in k][0]
+        self.assertIn(helper_node, graph[main_node])
+
+        os.unlink(tmpfile)
+
+
+class TestRubyParsing(unittest.TestCase):
+    """Tests for Ruby parsing via tree-sitter"""
+
+    def test_ruby_method_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        ruby_code = """
+class Calculator
+  def add(a, b)
+    a + b
+  end
+
+  def multiply(a, b)
+    a * b
+  end
+end
+"""
+        results = parse_file_content(ruby_code, "calculator.rb")
+        names = [r[0] for r in results]
+        self.assertIn("Calculator", names)
+        self.assertIn("Calculator.add", names)
+        self.assertIn("Calculator.multiply", names)
+
+    def test_ruby_free_method(self):
+        from utils.code_parser import parse_file_content
+
+        ruby_code = """
+def greet(name)
+  puts "Hello #{name}"
+end
+"""
+        results = parse_file_content(ruby_code, "helper.rb")
+        names = [r[0] for r in results]
+        self.assertIn("greet", names)
+
+
+class TestCSharpParsing(unittest.TestCase):
+    """Tests for C# parsing via tree-sitter"""
+
+    def test_csharp_method_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        cs_code = """
+namespace MyApp {
+    class Calculator {
+        public int Add(int a, int b) {
+            return a + b;
+        }
+        public int Multiply(int a, int b) {
+            return a * b;
+        }
+    }
+}
+"""
+        results = parse_file_content(cs_code, "Calculator.cs")
+        names = [r[0] for r in results]
+        self.assertIn("Calculator", names)
+        self.assertIn("Calculator.Add", names)
+        self.assertIn("Calculator.Multiply", names)
+
+
+class TestKotlinParsing(unittest.TestCase):
+    """Tests for Kotlin parsing via tree-sitter"""
+
+    def test_kotlin_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        kt_code = """
+fun add(a: Int, b: Int): Int {
+    return a + b
+}
+
+class Calculator {
+    fun multiply(a: Int, b: Int): Int {
+        return a * b
+    }
+}
+"""
+        results = parse_file_content(kt_code, "Calculator.kt")
+        names = [r[0] for r in results]
+        self.assertIn("add", names)
+        self.assertIn("Calculator", names)
+        self.assertIn("Calculator.multiply", names)
+
+
+class TestScalaParsing(unittest.TestCase):
+    """Tests for Scala parsing via tree-sitter"""
+
+    def test_scala_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        scala_code = """
+object Calculator {
+  def add(a: Int, b: Int): Int = {
+    a + b
+  }
+}
+
+def helper(): Unit = {
+  println(42)
+}
+"""
+        results = parse_file_content(scala_code, "Calculator.scala")
+        names = [r[0] for r in results]
+        self.assertIn("Calculator", names)
+        self.assertIn("Calculator.add", names)
+        self.assertIn("helper", names)
+
+
+class TestPhpParsing(unittest.TestCase):
+    """Tests for PHP parsing via tree-sitter"""
+
+    def test_php_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        php_code = """<?php
+class Calculator {
+    public function add($a, $b) {
+        return $a + $b;
+    }
+}
+
+function helper() {
+    echo "hi";
+}
+?>"""
+        results = parse_file_content(php_code, "Calculator.php")
+        names = [r[0] for r in results]
+        self.assertIn("Calculator", names)
+        self.assertIn("Calculator.add", names)
+        self.assertIn("helper", names)
+
+
+class TestLuaParsing(unittest.TestCase):
+    """Tests for Lua parsing via tree-sitter"""
+
+    def test_lua_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        lua_code = """
+function add(a, b)
+    return a + b
+end
+
+function helper()
+    print("hi")
+end
+"""
+        results = parse_file_content(lua_code, "utils.lua")
+        names = [r[0] for r in results]
+        self.assertIn("add", names)
+        self.assertIn("helper", names)
+
+
+class TestBashParsing(unittest.TestCase):
+    """Tests for Bash parsing via tree-sitter"""
+
+    def test_bash_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        bash_code = """
+hello() {
+    echo "hello"
+}
+
+function world {
+    echo "world"
+}
+"""
+        results = parse_file_content(bash_code, "deploy.sh")
+        names = [r[0] for r in results]
+        self.assertIn("hello", names)
+        self.assertIn("world", names)
+
+
+class TestZigParsing(unittest.TestCase):
+    """Tests for Zig parsing via tree-sitter"""
+
+    def test_zig_function_extraction(self):
+        from utils.code_parser import parse_file_content
+
+        zig_code = """
+fn add(a: i32, b: i32) i32 {
+    return a + b;
+}
+
+pub fn main() void {
+    const result = add(1, 2);
+}
+"""
+        results = parse_file_content(zig_code, "main.zig")
+        names = [r[0] for r in results]
+        self.assertIn("add", names)
+        self.assertIn("main", names)
+
+
+class TestTier2TextChunking(unittest.TestCase):
+    """Tests for Tier 2 universal text file chunking"""
+
+    def test_markdown_chunking(self):
+        from utils.code_parser import parse_file_content
+
+        md_content = """# Title
+
+This is the first paragraph with some
+content spanning multiple lines.
+
+## Section 2
+
+Another paragraph here with
+different content.
+
+## Section 3
+
+Final section.
+"""
+        results = parse_file_content(md_content, "README.md")
+        self.assertGreater(len(results), 0)
+        # Each chunk should have proper (name, text, start, end)
+        for name, text, start, end in results:
+            self.assertGreater(start, 0)
+            self.assertGreaterEqual(end, start)
+            self.assertTrue(len(text) > 0)
+
+    def test_yaml_chunking(self):
+        from utils.code_parser import parse_file_content
+
+        yaml_content = """name: CI
+on: push
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: npm install
+"""
+        results = parse_file_content(yaml_content, "ci.yml")
+        self.assertGreater(len(results), 0)
+
+    def test_dart_chunking(self):
+        from utils.code_parser import parse_file_content
+
+        dart_content = """
+void main() {
+  print('Hello Dart');
+}
+
+class Calculator {
+  int add(int a, int b) {
+    return a + b;
+  }
+}
+"""
+        results = parse_file_content(dart_content, "main.dart")
+        self.assertGreater(len(results), 0)
+
+    def test_binary_file_returns_empty(self):
+        from utils.code_parser import parse_file_content
+        # .png is a binary extension -> should return empty
+        results = parse_file_content("fake content", "image.png")
+        self.assertEqual(results, [])
+
+    def test_large_text_splitting(self):
+        from utils.code_parser import parse_text_file_content
+
+        # Create content with 100 lines
+        lines = [f"line {i}" for i in range(100)]
+        content = "\n".join(lines)
+        results = parse_text_file_content(content, "big.txt")
+        self.assertGreater(len(results), 1)
+        # Verify no gap in coverage
+        for name, text, start, end in results:
+            self.assertGreater(start, 0)
+            self.assertGreaterEqual(end, start)
+
+    def test_empty_file(self):
+        from utils.code_parser import parse_text_file_content
+        results = parse_text_file_content("", "empty.txt")
+        self.assertEqual(results, [])
+
+    def test_registered_language_not_tier2(self):
+        """Registered language files should NOT go through Tier 2 chunking."""
+        from utils.code_parser import parse_file_content
+        # .py is a registered language; even with invalid Python, it should
+        # go through Python parser, not text chunker
+        results = parse_file_content("def foo():\n    pass\n", "test.py")
+        names = [r[0] for r in results]
+        self.assertIn("foo", names)
 
 
 if __name__ == "__main__":

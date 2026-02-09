@@ -1,5 +1,5 @@
 name: 'PR-Pilot Code Review'
-description: 'AI code review with 4D analysis: semantic, architectural, historical, and clone detection. 7 languages.'
+description: 'AI code review with 4D analysis: semantic, architectural, historical, clone. 16 langs + text fallback.'
 author: 'PR-Pilot'
 
 inputs:

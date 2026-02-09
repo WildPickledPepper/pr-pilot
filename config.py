@@ -30,7 +30,7 @@ CO_CHANGE_DIR = os.getenv("CO_CHANGE_DIR", "./co_change_data")
 CLONE_DATA_DIR = os.getenv("CLONE_DATA_DIR", "./clone_data")
 
 # --- Language Support Settings ---
-SUPPORTED_LANGUAGES = os.getenv("SUPPORTED_LANGUAGES", "python,c,cpp,java,go,javascript,typescript").split(",")
+SUPPORTED_LANGUAGES = os.getenv("SUPPORTED_LANGUAGES", "python,c,cpp,java,go,javascript,typescript,rust,ruby,php,csharp,kotlin,scala,lua,bash,zig").split(",")
 
 # --- Tool Paths ---
 PMD_HOME = os.getenv("PMD_HOME", os.path.join(os.path.dirname(__file__), "tools", "pmd-bin-7.18.0-SNAPSHOT"))
