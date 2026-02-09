@@ -1,5 +1,5 @@
 name: 'PR-Pilot Code Review'
-description: 'AI-powered code review with 4-dimensional analysis: semantic (RAG), architectural (call graph), historical (co-change), and clone detection.'
+description: 'AI code review with 4D analysis: semantic, architectural, historical, and clone detection. 7 languages.'
 author: 'PR-Pilot'
 
 inputs:
