@@ -1,142 +1,396 @@
-# 🚀 PR-Pilot: Your AI Co-pilot for Team Code Reviews
+# PR-Pilot
 
-PR-Pilot is an open-source, self-hostable AI framework that acts as a "second pair of eyes" on your GitHub Pull Requests. It's not designed to replace human reviewers, but to augment them—handling the repetitive, time-consuming tasks and allowing your team to focus on what truly matters: building great software.
+**AI-powered code review for GitHub Pull Requests.**
+
+Four-dimensional analysis: semantic search (RAG), architectural dependency chains, historical co-change patterns, and code clone detection. Supports 7 languages. Runs as a GitHub Action — zero infrastructure, bring your own API keys.
+
+**AI 驱动的 GitHub Pull Request 代码审查工具。**
+
+四维分析引擎：语义检索（RAG）、架构依赖链、历史协同变更、代码克隆检测。支持 7 种编程语言。以 GitHub Action 形式运行——零基础设施，自带 API Key 即可使用。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
+[English](#quick-start-github-action) | [中文](#快速开始github-action)
+
 ---
 
-### 🤔 Why PR-Pilot?
+## Quick Start (GitHub Action)
 
-Modern code review is essential, but it's also a bottleneck. Senior engineers spend hours on routine checks, and junior engineers wait anxiously for feedback. Existing tools are often either simple linters that lack context, or closed-source SaaS products that are expensive and keep your code on third-party servers.
+**1. Add the workflow file** to your repository at `.github/workflows/pr-pilot.yml`:
 
-PR-Pilot is different. It's built on three core principles:
-
-*   **🛡️ Self-Hosted & Secure:** Your code is your most valuable asset. PR-Pilot runs on your own infrastructure, so your source code never leaves your control.
-*   **🧠 Global Context-Awareness:** Using the power of Retrieval-Augmented Generation (RAG), PR-Pilot doesn't just look at the *changes*—it understands the *entire codebase*. It builds a "brain" of your repository to detect code duplication, architectural inconsistencies, and potential side effects.
-*   **🔧 Open & Customizable:** PR-Pilot's "brain" is a white box. You can define project-specific rules and best practices in a simple YAML file, teaching the AI what matters most to *your* team.
-
-### ✨ Core Features
-
-*   **Automated PR Analysis:** Generates a concise summary, lists key changes, and identifies potential issues for every PR.
-*   **Just-in-Time Learning:** The first time you analyze a repository, PR-Pilot automatically and intelligently "learns" the entire codebase by building a vector knowledge base.
-*   **Smart Global Context:** When reviewing a PR, it automatically finds and includes relevant code from other parts of the repository in its analysis, enabling deeper insights.
-*   **Custom Review Rules:** Guide the AI's focus by defining your team's specific coding standards in a `.pr-pilot.yml` file.
-*   **Intelligent Workflow:** It first checks if a PR is open and valid before triggering the expensive "learning" process, saving you time and API costs.
-*   **Dry Run Mode:** Test the analysis on any public PR without actually posting a comment.
-
-### ⚙️ How It Works
-
-1.  **PR Check:** A lightweight check confirms the target Pull Request is open and valid.
-2.  **Knowledge Check:** PR-Pilot checks if it already has a "brain" (vector index) for the repository.
-3.  **Just-in-Time Indexing:** If no "brain" exists, it asks for permission to build one. It then scans the entire repository (either online via API or from a local clone), breaks down every function and class into "chunks," converts them into vectors using an Embedding model, and stores them in a local vector database (`ChromaDB`).
-4.  **Context Augmentation (RAG):** It takes the code changes (the "diff") from the PR and uses them to search for the most semantically similar code chunks in its "brain."
-5.  **Rich Prompt Generation:** It combines the PR title, description, diffs, and the retrieved global context into a rich, detailed prompt.
-6.  **AI Analysis:** The prompt is sent to a powerful Large Language Model (e.g., DeepSeek, GPT-4) for review.
-7.  **Report Generation:** The AI's response is formatted into a clean Markdown report and posted as a comment on the PR.
-
-### 🏁 Getting Started
-
-#### Prerequisites
-*   Python 3.8+
-*   Git
-
-#### 1. Clone the Repository
-```bash
-git clone https://github.com/your-username/pr-pilot.git
-cd pr-pilot
-```
-
-#### 2. Set Up a Virtual Environment
-```bash
-# For macOS/Linux
-python3 -m venv venv
-source venv/bin/activate
-
-# For Windows
-python -m venv venv
-.\venv\Scripts\activate
-```
-
-#### 3. Create `requirements.txt`
-Create a file named `requirements.txt` in the root of the project and add the following dependencies:
-```
-PyGithub
-openai
-python-dotenv
-PyYAML
-chromadb
-tiktoken
-```
-
-#### 4. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
-
-#### 5. Configure Your Environment
-Copy the example environment file:
-```bash
-cp .env.example .env
-```
-Now, edit the `.env` file with your favorite editor and fill in your API keys:
-```ini
-# .env
-
-# Your GitHub Personal Access Token with 'repo' scope
-GITHUB_TOKEN="ghp_..."
-
-# API Key for the LLM used for analysis (e.g., DeepSeek)
-DEEPSEEK_API_KEY="sk-..."
-
-# API Key and Base URL for the model used for embeddings (e.g., OpenAI compatible)
-OPENAI_API_KEY="sk-..."
-OPENAI_BASE_URL="https://api.your-provider.com/v1"
-```
-
-### 🕹️ Usage
-
-The primary entry point is `main.py`. It's designed to be simple and intuitive.
-
-```bash
-python main.py --repo "owner/repo-name" --pr <PR_NUMBER>
-```
-
-**Example (Dry Run):**
-This will analyze the PR and save the review to a local file instead of posting to GitHub. This is the recommended way to test.
-
-```bash
-python main.py --repo "Textualize/rich" --pr 2780 --dry-run
-```
-
-The first time you run this for a new repository, it will prompt you to build the knowledge base. Just type `y` and press Enter.
-
-### 🔧 Customization
-
-To add project-specific review rules, create a `.pr-pilot.yml` file in the **root of the target repository** (the one you are analyzing, not in the PR-Pilot repo itself).
-
-**Example `.pr-pilot.yml`:**
 ```yaml
-# A list of rules for the AI to enforce during review.
+name: PR-Pilot Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for co-change analysis
+
+      - name: Cache PR-Pilot knowledge base
+        uses: actions/cache@v4
+        with:
+          path: |
+            chroma_db/
+            call_graphs/
+            co_change_data/
+            clone_data/
+          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp') }}
+          restore-keys: |
+            pr-pilot-${{ github.repository }}-
+
+      - name: Run PR-Pilot
+        uses: WildPickledPepper/pr-pilot@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          # openai_base_url: 'https://your-proxy.com/v1'  # Optional
+          # analysis_mode: 'two-stage'                     # Default
+          # retrieval_mode: 'precise'                      # Default
+          # top_k: '5'                                     # Default
+```
+
+**2. Add secrets** in your repo Settings > Secrets and variables > Actions:
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| `DEEPSEEK_API_KEY` | Yes | DeepSeek API key for LLM analysis |
+| `OPENAI_API_KEY` | Yes | OpenAI API key for embeddings |
+| `OPENAI_BASE_URL` | No | Custom endpoint for OpenAI-compatible embedding API |
+| `DEEPSEEK_BASE_URL` | No | Custom endpoint for DeepSeek API |
+
+**3. Open a Pull Request** — PR-Pilot will automatically post a review comment.
+
+---
+
+## Four-Dimensional Analysis
+
+| Dimension | What it does | How |
+|-----------|-------------|-----|
+| **Semantic (RAG)** | Finds related code across the entire codebase | Vector similarity search via ChromaDB + OpenAI Embeddings |
+| **Architectural** | Traces function call chains to detect ripple effects | Static call graphs via pyan (Python) and tree-sitter (6 languages) |
+| **Historical** | Warns when frequently co-changed files are missed | Git history mining via PyDriller |
+| **Clone** | Flags duplicated code that should be updated together | PMD/CPD clone detection |
+
+---
+
+## Supported Languages
+
+| Language | AST Parsing | Call Graph | Extensions |
+|----------|------------|------------|------------|
+| Python | `ast` module | pyan (.dot) | `.py` |
+| C | tree-sitter | tree-sitter (.json) | `.c`, `.h` |
+| C++ | tree-sitter | tree-sitter (.json) | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` |
+| Java | tree-sitter | tree-sitter (.json) | `.java` |
+| Go | tree-sitter | tree-sitter (.json) | `.go` |
+| JavaScript | tree-sitter | tree-sitter (.json) | `.js`, `.jsx`, `.mjs` |
+| TypeScript | tree-sitter | tree-sitter (.json) | `.ts`, `.tsx` |
+
+Adding a new language requires only a grammar configuration — no new parsing code.
+
+---
+
+## Two-Stage LLM Architecture
+
+**Stage 1 — Analysts:** For each RAG-retrieved code snippet, an analyst LLM evaluates its relationship to the PR changes and assigns a risk score.
+
+**Stage 2 — Chief Architect:** Synthesizes all analyst reports, dependency chains, historical warnings, and clone alerts into a final review.
+
+This produces more thorough reviews than a single-prompt approach, especially for complex PRs.
+
+---
+
+## CLI Usage (Local Development)
+
+```bash
+# Clone and set up
+git clone https://github.com/WildPickledPepper/pr-pilot.git
+cd pr-pilot
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env      # Fill in your API keys
+
+# Build knowledge base for a repo
+python indexer.py --repo "owner/repo"
+
+# Review a PR (dry-run saves to reviews/ instead of posting)
+python main.py --repo "owner/repo" --pr 123 --dry-run
+
+# Full options
+python main.py --repo "owner/repo" --pr 123 \
+  --analysis-mode two-stage \
+  --retrieval-mode precise \
+  --top-k 5
+```
+
+### CLI Options
+
+| Flag | Values | Default | Description |
+|------|--------|---------|-------------|
+| `--analysis-mode` | `single`, `two-stage` | `two-stage` | Single-prompt or two-stage analyst architecture |
+| `--retrieval-mode` | `diff`, `fast`, `precise` | `precise` | How to query the vector database |
+| `--top-k` | 1-20 | 5 | Number of related code snippets to retrieve |
+| `--dry-run` | flag | off | Save review locally instead of posting to GitHub |
+| `--full` | flag (indexer) | off | Force full rebuild of the knowledge base |
+
+### Retrieval Modes
+
+- **`diff`** — Uses the PR diff text as the search query (fastest, least accurate)
+- **`fast`** — Uses pre-computed vectors of changed functions (fast, good accuracy)
+- **`precise`** — Generates new vectors from the updated function code (slowest, best accuracy)
+
+---
+
+## Incremental Indexing
+
+PR-Pilot tracks file hashes to avoid redundant work:
+
+- Only changed/added files are re-embedded on subsequent runs
+- Deleted files are automatically cleaned from the vector database
+- `actions/cache` persists the knowledge base across Action runs
+- Use `--full` to force a complete rebuild
+
+---
+
+## Custom Review Rules
+
+Add a `.pr-pilot.yml` file to the root of the target repository:
+
+```yaml
 rules:
   - "All public functions must have a docstring."
-  - "Avoid using mutable default arguments in function definitions."
-  - "Database queries should be wrapped in a try...except block to handle potential exceptions."
+  - "Avoid mutable default arguments."
+  - "Database queries must be wrapped in try/except."
 ```
 
-### 🗺️ Future Roadmap
+---
 
-PR-Pilot is actively being developed. Our future plans include:
+## Action Inputs
 
-*   **Phase 3: GitHub App Transformation:** Evolve from a command-line tool into a fully automated GitHub App that listens to webhook events (e.g., `pull_request.opened`).
-*   **Phase 4: Easy Deployment:** Provide a `Dockerfile` for easy containerization and deployment on cloud services like Render or Fly.io.
-*   **Smarter Chunking & Indexing:** Implement more advanced strategies for parsing different programming languages and handling huge files.
-*   **Support for GitLab & Bitbucket:** Extend the `base.py` abstractions to support other popular Git providers.
+| Input | Required | Default | Description |
+|-------|----------|---------|-------------|
+| `github_token` | No | `${{ github.token }}` | GitHub token for API access |
+| `deepseek_api_key` | Yes | — | DeepSeek API key |
+| `openai_api_key` | Yes | — | OpenAI API key for embeddings |
+| `openai_base_url` | No | `https://api.openai.com/v1` | Custom embedding API endpoint |
+| `deepseek_base_url` | No | `https://api.deepseek.com/v1` | Custom DeepSeek endpoint |
+| `analysis_mode` | No | `two-stage` | `single` or `two-stage` |
+| `retrieval_mode` | No | `precise` | `diff`, `fast`, or `precise` |
+| `top_k` | No | `5` | Number of snippets to retrieve |
 
-###🤝 Contributing
+---
 
-Contributions are welcome! Whether it's bug reports, feature suggestions, or pull requests, your help is greatly appreciated. Please feel free to open an issue to discuss your ideas.
+## Tech Stack
 
-### 📄 License
+- **LLM**: DeepSeek (OpenAI-compatible API)
+- **Embeddings**: OpenAI text-embedding-3-small
+- **Vector DB**: ChromaDB (local, persistent)
+- **AST Parsing**: Python `ast` + tree-sitter (7 languages)
+- **Call Graphs**: pyan (Python) + tree-sitter (C/C++/Java/Go/JS/TS)
+- **Clone Detection**: PMD/CPD
+- **History Analysis**: PyDriller
+- **CI/CD**: GitHub Actions + Docker
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+---
+
+## License
+
+MIT License. See [LICENSE](LICENSE) for details.
+
+---
+
+# 中文文档
+
+## 快速开始（GitHub Action）
+
+**1. 添加 workflow 文件**，在你的仓库中创建 `.github/workflows/pr-pilot.yml`：
+
+```yaml
+name: PR-Pilot Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 完整历史，用于协同变更分析
+
+      - name: Cache PR-Pilot knowledge base
+        uses: actions/cache@v4
+        with:
+          path: |
+            chroma_db/
+            call_graphs/
+            co_change_data/
+            clone_data/
+          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp') }}
+          restore-keys: |
+            pr-pilot-${{ github.repository }}-
+
+      - name: Run PR-Pilot
+        uses: WildPickledPepper/pr-pilot@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          # openai_base_url: 'https://your-proxy.com/v1'  # 可选：自定义 Embedding API 地址
+          # analysis_mode: 'two-stage'                     # 默认值
+          # retrieval_mode: 'precise'                      # 默认值
+          # top_k: '5'                                     # 默认值
+```
+
+**2. 配置 Secrets**，进入仓库 Settings > Secrets and variables > Actions：
+
+| Secret 名称 | 必填 | 说明 |
+|-------------|------|------|
+| `DEEPSEEK_API_KEY` | 是 | DeepSeek API 密钥，用于 LLM 分析 |
+| `OPENAI_API_KEY` | 是 | OpenAI API 密钥，用于生成 Embedding 向量 |
+| `OPENAI_BASE_URL` | 否 | 自定义 OpenAI 兼容 Embedding API 地址（支持中转代理） |
+| `DEEPSEEK_BASE_URL` | 否 | 自定义 DeepSeek API 地址 |
+
+**3. 提一个 Pull Request**——PR-Pilot 会自动在 PR 下发布审查评论。
+
+---
+
+## 四维分析引擎
+
+| 维度 | 功能 | 实现方式 |
+|------|------|---------|
+| **语义分析（RAG）** | 在全仓库中检索与 PR 变更语义相关的代码 | ChromaDB 向量数据库 + OpenAI Embedding |
+| **架构分析（依赖链）** | 追踪函数调用链，检测变更的波及效应 | pyan（Python）+ tree-sitter（6 种语言）静态调用图 |
+| **历史分析（协同变更）** | 警告经常一起修改但这次遗漏的文件 | PyDriller 挖掘 Git 提交历史 |
+| **克隆分析（代码基因）** | 标记应该同步更新的重复代码 | PMD/CPD 代码克隆检测 |
+
+---
+
+## 支持语言
+
+| 语言 | AST 解析 | 调用图 | 文件扩展名 |
+|------|----------|--------|-----------|
+| Python | `ast` 模块 | pyan (.dot) | `.py` |
+| C | tree-sitter | tree-sitter (.json) | `.c`, `.h` |
+| C++ | tree-sitter | tree-sitter (.json) | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` |
+| Java | tree-sitter | tree-sitter (.json) | `.java` |
+| Go | tree-sitter | tree-sitter (.json) | `.go` |
+| JavaScript | tree-sitter | tree-sitter (.json) | `.js`, `.jsx`, `.mjs` |
+| TypeScript | tree-sitter | tree-sitter (.json) | `.ts`, `.tsx` |
+
+数据驱动架构：添加新语言只需注册一份 grammar 配置，无需编写新的解析代码。
+
+---
+
+## 两阶段 LLM 架构
+
+**第一阶段——分析员：** 对 RAG 检索到的每个代码片段，分析员 LLM 评估其与 PR 变更的关联性，输出风险评分和影响类型。
+
+**第二阶段——总指挥：** 汇总所有分析员报告 + 依赖链 + 历史警告 + 克隆警告，一次调用 LLM 生成最终审查报告。
+
+相比单次 Prompt，两阶段架构在复杂 PR 上能产出更深入的审查。
+
+---
+
+## CLI 用法（本地开发）
+
+```bash
+# 克隆并配置
+git clone https://github.com/WildPickledPepper/pr-pilot.git
+cd pr-pilot
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cp .env.example .env      # 填入你的 API Key
+
+# 为目标仓库建立知识库
+python indexer.py --repo "owner/repo"
+
+# 审查 PR（dry-run 模式保存到本地，不发评论）
+python main.py --repo "owner/repo" --pr 123 --dry-run
+
+# 完整参数
+python main.py --repo "owner/repo" --pr 123 \
+  --analysis-mode two-stage \
+  --retrieval-mode precise \
+  --top-k 5
+```
+
+### 命令行参数
+
+| 参数 | 可选值 | 默认值 | 说明 |
+|------|--------|--------|------|
+| `--analysis-mode` | `single`, `two-stage` | `two-stage` | 单阶段或两阶段分析架构 |
+| `--retrieval-mode` | `diff`, `fast`, `precise` | `precise` | 向量检索策略 |
+| `--top-k` | 1-20 | 5 | 检索相关代码片段数量 |
+| `--dry-run` | 开关 | 关 | 保存到本地而非发到 GitHub |
+| `--full` | 开关（indexer） | 关 | 强制全量重建知识库 |
+
+### 三种检索模式
+
+- **`diff`** — 用 PR diff 文本作为查询（最快，精度最低）
+- **`fast`** — 用变更函数的旧向量查询（较快，精度较好）
+- **`precise`** — 用变更后的新函数代码实时生成向量查询（最慢，精度最高）
+
+---
+
+## 增量索引
+
+PR-Pilot 通过文件 hash 追踪避免重复工作：
+
+- 只对新增/修改的文件重新生成 Embedding
+- 删除的文件自动从向量数据库清理
+- `actions/cache` 跨 Action 运行持久化知识库
+- 使用 `--full` 参数强制全量重建
+
+---
+
+## 自定义审查规则
+
+在目标仓库根目录添加 `.pr-pilot.yml` 文件：
+
+```yaml
+rules:
+  - "所有公开函数必须有文档字符串。"
+  - "禁止使用可变默认参数。"
+  - "数据库查询必须包在 try/except 中。"
+```
+
+---
+
+## 技术栈
+
+- **LLM**: DeepSeek（兼容 OpenAI API 格式）
+- **Embedding**: OpenAI text-embedding-3-small
+- **向量数据库**: ChromaDB（本地持久化）
+- **AST 解析**: Python `ast` + tree-sitter（7 种语言）
+- **调用图**: pyan（Python）+ tree-sitter（C/C++/Java/Go/JS/TS）
+- **克隆检测**: PMD/CPD
+- **历史分析**: PyDriller
+- **CI/CD**: GitHub Actions + Docker
+
+---
+
+## 许可证
+
+MIT License，详见 [LICENSE](LICENSE)。

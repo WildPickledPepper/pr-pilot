@@ -33,7 +33,7 @@ jobs:
             pr-pilot-${{ github.repository }}-
 
       - name: Run PR-Pilot
-        uses: your-org/pr-pilot@main
+        uses: WildPickledPepper/pr-pilot@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
