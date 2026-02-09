@@ -8,9 +8,9 @@ from typing import Any, Dict, List, Tuple, Optional
 try:
     db_client = chromadb.PersistentClient(path=config.CHROMA_DB_PATH)
     openai_client = OpenAI(
-        api_key=config.OPENAI_API_KEY,
-        base_url=config.OPENAI_BASE_URL,
-        timeout=180.0  
+        api_key=config.EMBEDDING_API_KEY,
+        base_url=config.EMBEDDING_BASE_URL,
+        timeout=180.0
     )
     print("RAG Retriever initialized successfully.")
 except Exception as e:

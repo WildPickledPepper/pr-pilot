@@ -9,8 +9,8 @@ print("This script will read 'payload_to_debug.json' and send its exact contents
 # 1. 初始化 OpenAI 客户端 (和 deepseek.py 中完全一样)
 try:
     client = openai.OpenAI(
-        api_key=config.DEEPSEEK_API_KEY,
-        base_url="https://api.deepseek.com/v1"
+        api_key=config.LLM_API_KEY,
+        base_url=config.LLM_BASE_URL
     )
     print("OpenAI client initialized successfully.")
 except Exception as e:

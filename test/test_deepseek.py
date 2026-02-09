@@ -22,7 +22,7 @@ mock_analysis_input: AnalysisInput = {
 
 try:
     # 2. 初始化分析器
-    # (确保你的 .env 文件在正确的位置并且包含了 DEEPSEEK_API_KEY)
+    # (确保你的 .env 文件在正确的位置并且包含了 LLM_API_KEY)
     analyzer = DeepSeekAnalyzer()
 
     # 3. 调用 analyze 方法

@@ -36,9 +36,12 @@ jobs:
         uses: WildPickledPepper/pr-pilot@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          # openai_base_url: 'https://your-proxy.com/v1'  # Optional: custom embedding API endpoint
+          llm_api_key: ${{ secrets.LLM_API_KEY }}
+          llm_base_url: ${{ secrets.LLM_BASE_URL }}
+          # llm_model: 'deepseek-chat'           # Optional, default: deepseek-chat
+          embedding_api_key: ${{ secrets.EMBEDDING_API_KEY }}
+          embedding_base_url: ${{ secrets.EMBEDDING_BASE_URL }}
+          # embedding_model: 'text-embedding-3-small'  # Optional
           analysis_mode: 'two-stage'
           retrieval_mode: 'precise'
           top_k: '5'

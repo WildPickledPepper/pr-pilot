@@ -54,22 +54,25 @@ jobs:
         uses: WildPickledPepper/pr-pilot@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          # openai_base_url: 'https://your-proxy.com/v1'  # Optional
-          # analysis_mode: 'two-stage'                     # Default
-          # retrieval_mode: 'precise'                      # Default
-          # top_k: '5'                                     # Default
+          llm_api_key: ${{ secrets.LLM_API_KEY }}
+          llm_base_url: ${{ secrets.LLM_BASE_URL }}
+          embedding_api_key: ${{ secrets.EMBEDDING_API_KEY }}
+          embedding_base_url: ${{ secrets.EMBEDDING_BASE_URL }}
+          # llm_model: 'deepseek-chat'                        # Optional
+          # embedding_model: 'text-embedding-3-small'          # Optional
+          # analysis_mode: 'two-stage'                         # Default
+          # retrieval_mode: 'precise'                          # Default
+          # top_k: '5'                                         # Default
 ```
 
 **2. Add secrets** in your repo Settings > Secrets and variables > Actions:
 
 | Secret | Required | Description |
 |--------|----------|-------------|
-| `DEEPSEEK_API_KEY` | Yes | DeepSeek API key for LLM analysis |
-| `OPENAI_API_KEY` | Yes | OpenAI API key for embeddings |
-| `OPENAI_BASE_URL` | No | Custom endpoint for OpenAI-compatible embedding API |
-| `DEEPSEEK_BASE_URL` | No | Custom endpoint for DeepSeek API |
+| `LLM_API_KEY` | Yes | API key for the LLM (OpenAI-compatible) |
+| `LLM_BASE_URL` | No | Custom endpoint for LLM API (default: `https://api.openai.com/v1`) |
+| `EMBEDDING_API_KEY` | Yes | API key for embedding API (OpenAI-compatible) |
+| `EMBEDDING_BASE_URL` | No | Custom endpoint for embedding API (default: `https://api.openai.com/v1`) |
 
 **3. Open a Pull Request** — PR-Pilot will automatically post a review comment.
 
@@ -276,22 +279,25 @@ jobs:
         uses: WildPickledPepper/pr-pilot@main
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
-          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
-          # openai_base_url: 'https://your-proxy.com/v1'  # 可选：自定义 Embedding API 地址
-          # analysis_mode: 'two-stage'                     # 默认值
-          # retrieval_mode: 'precise'                      # 默认值
-          # top_k: '5'                                     # 默认值
+          llm_api_key: ${{ secrets.LLM_API_KEY }}
+          llm_base_url: ${{ secrets.LLM_BASE_URL }}
+          embedding_api_key: ${{ secrets.EMBEDDING_API_KEY }}
+          embedding_base_url: ${{ secrets.EMBEDDING_BASE_URL }}
+          # llm_model: 'deepseek-chat'                        # 可选
+          # embedding_model: 'text-embedding-3-small'          # 可选
+          # analysis_mode: 'two-stage'                         # 默认值
+          # retrieval_mode: 'precise'                          # 默认值
+          # top_k: '5'                                         # 默认值
 ```
 
 **2. 配置 Secrets**，进入仓库 Settings > Secrets and variables > Actions：
 
 | Secret 名称 | 必填 | 说明 |
 |-------------|------|------|
-| `DEEPSEEK_API_KEY` | 是 | DeepSeek API 密钥，用于 LLM 分析 |
-| `OPENAI_API_KEY` | 是 | OpenAI API 密钥，用于生成 Embedding 向量 |
-| `OPENAI_BASE_URL` | 否 | 自定义 OpenAI 兼容 Embedding API 地址（支持中转代理） |
-| `DEEPSEEK_BASE_URL` | 否 | 自定义 DeepSeek API 地址 |
+| `LLM_API_KEY` | 是 | LLM API 密钥（OpenAI 兼容格式，支持 DeepSeek/OpenAI 等） |
+| `LLM_BASE_URL` | 否 | LLM API 地址（默认 `https://api.openai.com/v1`，支持代理） |
+| `EMBEDDING_API_KEY` | 是 | Embedding API 密钥（OpenAI 兼容格式） |
+| `EMBEDDING_BASE_URL` | 否 | Embedding API 地址（默认 `https://api.openai.com/v1`，支持代理） |
 
 **3. 提一个 Pull Request**——PR-Pilot 会自动在 PR 下发布审查评论。
 

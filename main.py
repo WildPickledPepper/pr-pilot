@@ -124,7 +124,7 @@ def main():
             analysis_mode=args.analysis_mode,
             top_k=args.top_k
         )
-        if config.AI_PROVIDER == "deepseek":
+        if config.LLM_API_KEY:
             ai_analyzer = DeepSeekAnalyzer()
             debug_info_for_logging: DebugInfo = {
             "repo_name": args.repo,
@@ -134,7 +134,7 @@ def main():
             "top_k": args.top_k,
         }
         else:
-            raise ValueError(f"Unsupported AI provider: {config.AI_PROVIDER}")
+            raise ValueError("LLM_API_KEY is not configured.")
         analysis_input: AnalysisInput = {
             "pr_context": pr_analysis_context,
             "analysis_mode": args.analysis_mode,

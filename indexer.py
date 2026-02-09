@@ -38,17 +38,15 @@ except Exception as e:
     exit(1)
 
 # OpenAI 客户端: 专门用于生成 Embeddings
-if not config.OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY is not configured in .env file.")
+if not config.EMBEDDING_API_KEY:
+    raise ValueError("EMBEDDING_API_KEY is not configured.")
 
-# --- [CRITICAL CHANGE] 使用自定义的 base_url 初始化 OpenAI 客户端 ---
-print(f"Initializing OpenAI client with base_url: {config.OPENAI_BASE_URL}")
+print(f"Initializing Embedding client with base_url: {config.EMBEDDING_BASE_URL}")
 openai_client = OpenAI(
-    api_key=config.OPENAI_API_KEY,
-    base_url=config.OPENAI_BASE_URL,
-    timeout=180  # 设置超时时间为180秒
+    api_key=config.EMBEDDING_API_KEY,
+    base_url=config.EMBEDDING_BASE_URL,
+    timeout=180
 )
-# -------------------------------------------------------------------
 
 # Tiktoken 编码器
 try:

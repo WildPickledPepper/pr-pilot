@@ -37,7 +37,7 @@ git_providers/
   exceptions.py                  # 自定义异常
 
 rag/
-  retriever.py                   # 向量检索（ChromaDB + OpenAI Embedding API）
+  retriever.py                   # 向量检索（ChromaDB + Embedding API）
 
 utils/
   language_registry.py           # 语言注册中心（7 种语言配置 + TreeSitterGrammar 数据类）
@@ -101,8 +101,8 @@ test/
 ## 技术栈
 
 - **语言**: Python 3.9+
-- **LLM**: DeepSeek API（兼容 OpenAI 格式）
-- **Embedding**: OpenAI text-embedding-3-small（支持自定义 base_url 代理）
+- **LLM**: 任意 OpenAI 兼容 API（DeepSeek、OpenAI、自定义代理等）
+- **Embedding**: 任意 OpenAI 兼容 Embedding API（支持自定义 base_url 代理）
 - **向量数据库**: ChromaDB（本地持久化 + 增量更新）
 - **GitHub**: PyGithub
 - **AST 解析**: Python ast + tree-sitter（7 种语言）
@@ -152,13 +152,13 @@ test/
 ## 发布计划：GitHub Action（Marketplace）
 
 ### 商业模式
-- BYOK（Bring Your Own Key）：用户自带 DeepSeek + OpenAI API Key
+- BYOK（Bring Your Own Key）：用户自带 LLM + Embedding API Key（支持任意 OpenAI 兼容服务）
 - 零运营成本：Action 跑在用户的 GitHub Runner 上
 - 定价：Free（BYOK）+ Pro（$19-29/月，含 API 额度）
 
 ### 用户接入流程
 1. 在仓库添加 `.github/workflows/pr-pilot.yml`
-2. 在 Settings > Secrets 配置 `DEEPSEEK_API_KEY` 和 `OPENAI_API_KEY`
+2. 在 Settings > Secrets 配置 `LLM_API_KEY`、`LLM_BASE_URL`、`EMBEDDING_API_KEY`、`EMBEDDING_BASE_URL`
 3. 提 PR 自动触发审查
 
 ### 竞品参考

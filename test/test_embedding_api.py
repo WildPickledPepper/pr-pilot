@@ -9,8 +9,8 @@ print("Loading .env file to get API key and Base URL...")
 load_dotenv()
 
 # 2. 从 .env 文件读取配置
-key = os.getenv("OPENAI_API_KEY")
-base_url = os.getenv("OPENAI_BASE_URL", "https://api.gpt.ge/v1/") # 增加一个默认值
+key = os.getenv("EMBEDDING_API_KEY")
+base_url = os.getenv("EMBEDDING_BASE_URL", "https://api.openai.com/v1")
 
 print("\n--- Configuration Check ---")
 print(f"Base URL being used: {base_url}")
@@ -18,7 +18,7 @@ print(key)
 if key:
     print(f"API Key found: {key[:5]}...{key[-4:]}")
 else:
-    print("FATAL ERROR: OPENAI_API_KEY not found in .env file!")
+    print("FATAL ERROR: EMBEDDING_API_KEY not found in .env file!")
     exit() # 如果没有key，直接退出
 print("--------------------------\n")
 

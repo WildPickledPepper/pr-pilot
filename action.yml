@@ -7,20 +7,28 @@ inputs:
     description: 'GitHub token for API access'
     required: false
     default: ${{ github.token }}
-  deepseek_api_key:
-    description: 'DeepSeek API key for LLM analysis'
+  llm_api_key:
+    description: 'API key for the LLM (OpenAI-compatible)'
     required: true
-  openai_api_key:
-    description: 'OpenAI API key for embeddings'
-    required: true
-  openai_base_url:
-    description: 'Base URL for OpenAI-compatible embedding API'
+  llm_base_url:
+    description: 'Base URL for LLM API (OpenAI-compatible)'
     required: false
     default: 'https://api.openai.com/v1'
-  deepseek_base_url:
-    description: 'Base URL for DeepSeek API'
+  llm_model:
+    description: 'LLM model name for analysis'
     required: false
-    default: 'https://api.deepseek.com/v1'
+    default: 'deepseek-chat'
+  embedding_api_key:
+    description: 'API key for embedding API (OpenAI-compatible)'
+    required: true
+  embedding_base_url:
+    description: 'Base URL for embedding API (OpenAI-compatible)'
+    required: false
+    default: 'https://api.openai.com/v1'
+  embedding_model:
+    description: 'Embedding model name'
+    required: false
+    default: 'text-embedding-3-small'
   analysis_mode:
     description: 'Analysis architecture: single or two-stage'
     required: false
@@ -39,10 +47,12 @@ runs:
   image: 'Dockerfile'
   env:
     GITHUB_TOKEN: ${{ inputs.github_token }}
-    DEEPSEEK_API_KEY: ${{ inputs.deepseek_api_key }}
-    OPENAI_API_KEY: ${{ inputs.openai_api_key }}
-    OPENAI_BASE_URL: ${{ inputs.openai_base_url }}
-    DEEPSEEK_BASE_URL: ${{ inputs.deepseek_base_url }}
+    LLM_API_KEY: ${{ inputs.llm_api_key }}
+    LLM_BASE_URL: ${{ inputs.llm_base_url }}
+    LLM_MODEL: ${{ inputs.llm_model }}
+    EMBEDDING_API_KEY: ${{ inputs.embedding_api_key }}
+    EMBEDDING_BASE_URL: ${{ inputs.embedding_base_url }}
+    EMBEDDING_MODEL: ${{ inputs.embedding_model }}
     INPUT_ANALYSIS_MODE: ${{ inputs.analysis_mode }}
     INPUT_RETRIEVAL_MODE: ${{ inputs.retrieval_mode }}
     INPUT_TOP_K: ${{ inputs.top_k }}

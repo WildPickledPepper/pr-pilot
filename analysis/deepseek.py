@@ -23,16 +23,17 @@ The JSON object must have the following structure:
 """
 
 class DeepSeekAnalyzer(AIAnalyzer):
-    def __init__(self, api_key: str = config.DEEPSEEK_API_KEY):
+    def __init__(self, api_key: str = None):
+        api_key = api_key or config.LLM_API_KEY
         if not api_key:
-            raise ValueError("DeepSeek API key is not configured.")
+            raise ValueError("LLM_API_KEY is not configured.")
         self.client = openai.OpenAI(
             api_key=api_key,
-            base_url=config.DEEPSEEK_BASE_URL,
+            base_url=config.LLM_BASE_URL,
             timeout=120.0,
             max_retries=3
         )
-        print("DeepSeek Analyzer initialized.")
+        print(f"LLM Analyzer initialized (model={config.LLM_MODEL}, base_url={config.LLM_BASE_URL}).")
 
     # --- 【新增】实现缺失的“分析员”函数 ---
     def _get_preliminary_analysis(self, main_change_context: str, related_snippet: str) -> dict:
@@ -60,14 +61,12 @@ class DeepSeekAnalyzer(AIAnalyzer):
         """
         try:
             response = self.client.chat.completions.create(
-                model=config.DEEPSEEK_MODEL,
+                model=config.LLM_MODEL,
                 messages=[
-                    # 使用我们新的、升级版的系统指令
-                    {"role": "system", "content": ANALYST_SYSTEM_PROMPT}, 
+                    {"role": "system", "content": ANALYST_SYSTEM_PROMPT},
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=0.1,
-                # 强制要求返回 JSON，这能极大提升稳定性和成功率
                 response_format={"type": "json_object"} 
             )
             report_str = response.choices[0].message.content
@@ -138,9 +137,9 @@ class DeepSeekAnalyzer(AIAnalyzer):
 
         # --- 调试与 API 调用 ---
         try:
-            print("Sending request to DeepSeek API...")
+            print("Sending request to LLM API...")
             response = self.client.chat.completions.create(
-                model=config.DEEPSEEK_MODEL,
+                model=config.LLM_MODEL,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": final_context_string} # <-- 【修正】使用正确的变量
@@ -148,10 +147,10 @@ class DeepSeekAnalyzer(AIAnalyzer):
                 temperature=config.TEMPERATURE,
             )
             analysis = response.choices[0].message.content
-            print("Successfully received analysis from DeepSeek.")
+            print("Successfully received analysis from LLM.")
             return analysis
         except openai.APIError as e:
-            print(f"Error from DeepSeek API: {e}")
+            print(f"Error from LLM API: {e}")
             raise
         except Exception as e:
             print(f"An unexpected error occurred during single-stage analysis: {e}")
@@ -274,7 +273,7 @@ class DeepSeekAnalyzer(AIAnalyzer):
                 print(f"❌ [调试] 保存第二阶段 Prompt 文件失败: {e}")
             print("Briefing complete. Requesting final synthesis from the Chief Architect...")
             response = self.client.chat.completions.create(
-                model=config.DEEPSEEK_MODEL,
+                model=config.LLM_MODEL,
                 messages=[
                     {"role": "system", "content": final_system_prompt},
                     {"role": "user", "content": final_user_prompt}

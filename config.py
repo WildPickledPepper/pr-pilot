@@ -8,16 +8,15 @@ load_dotenv()
 # --- GitHub Settings ---
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
-# --- AI Provider Settings (Analysis) ---
-AI_PROVIDER = "deepseek"
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = "deepseek-chat"
-DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1").rstrip("/")
+# --- LLM Settings (Analysis, OpenAI-compatible) ---
+LLM_API_KEY = os.getenv("LLM_API_KEY")
+LLM_BASE_URL = os.getenv("LLM_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+LLM_MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
 
-# --- Embedding Provider Settings (RAG) ---
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
-EMBEDDING_MODEL = "text-embedding-3-small"
+# --- Embedding Settings (RAG, OpenAI-compatible) ---
+EMBEDDING_API_KEY = os.getenv("EMBEDDING_API_KEY")
+EMBEDDING_BASE_URL = os.getenv("EMBEDDING_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
 
 # --- Analysis Settings ---
 MAX_FILES_TO_REVIEW = int(os.getenv("MAX_FILES_TO_REVIEW", "10"))
