@@ -71,8 +71,10 @@ jobs:
 |--------|----------|-------------|
 | `LLM_API_KEY` | Yes | API key for the LLM (OpenAI-compatible) |
 | `LLM_BASE_URL` | No | Custom endpoint for LLM API (default: `https://api.openai.com/v1`) |
+| `LLM_MODEL` | No | LLM model name (default: `deepseek-chat`) |
 | `EMBEDDING_API_KEY` | Yes | API key for embedding API (OpenAI-compatible) |
 | `EMBEDDING_BASE_URL` | No | Custom endpoint for embedding API (default: `https://api.openai.com/v1`) |
+| `EMBEDDING_MODEL` | No | Embedding model name (default: `text-embedding-3-small`) |
 
 **3. Open a Pull Request** — PR-Pilot will automatically post a review comment.
 
@@ -82,7 +84,7 @@ jobs:
 
 | Dimension | What it does | How |
 |-----------|-------------|-----|
-| **Semantic (RAG)** | Finds related code across the entire codebase | Vector similarity search via ChromaDB + OpenAI Embeddings |
+| **Semantic (RAG)** | Finds related code across the entire codebase | Vector similarity search via ChromaDB + OpenAI-compatible Embedding API |
 | **Architectural** | Traces function call chains to detect ripple effects | Static call graphs via pyan (Python) and tree-sitter (15 languages) |
 | **Historical** | Warns when frequently co-changed files are missed | Git history mining via PyDriller |
 | **Clone** | Flags duplicated code that should be updated together | PMD/CPD clone detection |
@@ -208,10 +210,12 @@ rules:
 | Input | Required | Default | Description |
 |-------|----------|---------|-------------|
 | `github_token` | No | `${{ github.token }}` | GitHub token for API access |
-| `deepseek_api_key` | Yes | — | DeepSeek API key |
-| `openai_api_key` | Yes | — | OpenAI API key for embeddings |
-| `openai_base_url` | No | `https://api.openai.com/v1` | Custom embedding API endpoint |
-| `deepseek_base_url` | No | `https://api.deepseek.com/v1` | Custom DeepSeek endpoint |
+| `llm_api_key` | Yes | — | API key for the LLM (OpenAI-compatible) |
+| `llm_base_url` | No | `https://api.openai.com/v1` | LLM API endpoint |
+| `llm_model` | No | `deepseek-chat` | LLM model name |
+| `embedding_api_key` | Yes | — | API key for embeddings (OpenAI-compatible) |
+| `embedding_base_url` | No | `https://api.openai.com/v1` | Embedding API endpoint |
+| `embedding_model` | No | `text-embedding-3-small` | Embedding model name |
 | `analysis_mode` | No | `two-stage` | `single` or `two-stage` |
 | `retrieval_mode` | No | `precise` | `diff`, `fast`, or `precise` |
 | `top_k` | No | `5` | Number of snippets to retrieve |
@@ -220,8 +224,8 @@ rules:
 
 ## Tech Stack
 
-- **LLM**: DeepSeek (OpenAI-compatible API)
-- **Embeddings**: OpenAI text-embedding-3-small
+- **LLM**: Any OpenAI-compatible API (DeepSeek, OpenAI, custom proxies, etc.)
+- **Embeddings**: Any OpenAI-compatible Embedding API
 - **Vector DB**: ChromaDB (local, persistent)
 - **AST Parsing**: Python `ast` + tree-sitter (15 languages)
 - **Call Graphs**: pyan (Python) + tree-sitter (15 languages)
@@ -296,8 +300,10 @@ jobs:
 |-------------|------|------|
 | `LLM_API_KEY` | 是 | LLM API 密钥（OpenAI 兼容格式，支持 DeepSeek/OpenAI 等） |
 | `LLM_BASE_URL` | 否 | LLM API 地址（默认 `https://api.openai.com/v1`，支持代理） |
+| `LLM_MODEL` | 否 | LLM 模型名称（默认 `deepseek-chat`） |
 | `EMBEDDING_API_KEY` | 是 | Embedding API 密钥（OpenAI 兼容格式） |
 | `EMBEDDING_BASE_URL` | 否 | Embedding API 地址（默认 `https://api.openai.com/v1`，支持代理） |
+| `EMBEDDING_MODEL` | 否 | Embedding 模型名称（默认 `text-embedding-3-small`） |
 
 **3. 提一个 Pull Request**——PR-Pilot 会自动在 PR 下发布审查评论。
 
@@ -307,7 +313,7 @@ jobs:
 
 | 维度 | 功能 | 实现方式 |
 |------|------|---------|
-| **语义分析（RAG）** | 在全仓库中检索与 PR 变更语义相关的代码 | ChromaDB 向量数据库 + OpenAI Embedding |
+| **语义分析（RAG）** | 在全仓库中检索与 PR 变更语义相关的代码 | ChromaDB 向量数据库 + OpenAI 兼容 Embedding API |
 | **架构分析（依赖链）** | 追踪函数调用链，检测变更的波及效应 | pyan（Python）+ tree-sitter（15 种语言）静态调用图 |
 | **历史分析（协同变更）** | 警告经常一起修改但这次遗漏的文件 | PyDriller 挖掘 Git 提交历史 |
 | **克隆分析（代码基因）** | 标记应该同步更新的重复代码 | PMD/CPD 代码克隆检测（13 种语言） |
@@ -430,8 +436,8 @@ rules:
 
 ## 技术栈
 
-- **LLM**: DeepSeek（兼容 OpenAI API 格式）
-- **Embedding**: OpenAI text-embedding-3-small
+- **LLM**: 任意 OpenAI 兼容 API（DeepSeek、OpenAI、自定义代理等）
+- **Embedding**: 任意 OpenAI 兼容 Embedding API
 - **向量数据库**: ChromaDB（本地持久化）
 - **AST 解析**: Python `ast` + tree-sitter（15 种语言）
 - **调用图**: pyan（Python）+ tree-sitter（15 种语言）
