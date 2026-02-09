@@ -1,0 +1,34 @@
+# Environment
+.env
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Data directories (generated at runtime)
+chroma_db/
+call_graphs/
+co_change_data/
+clone_data/
+temp_clones/
+reviews/
+debug_prompts/
+
+# Debug files
+debug_prompt_*.txt
+
+# IDE
+.vscode/
+.idea/
+
+# Claude Code
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PMD binary (large, downloaded at runtime or in Docker)
+tools/pmd-bin-*/

@@ -1,0 +1,17 @@
+PyGithub
+openai
+python-dotenv
+PyYAML
+chromadb
+tiktoken
+numpy
+pydriller
+tqdm
+pyan3
+tree-sitter>=0.22.0,<0.24.0
+tree-sitter-c>=0.21.0,<0.23.0
+tree-sitter-cpp>=0.21.0,<0.23.0
+tree-sitter-java>=0.21.0,<0.24.0
+tree-sitter-go>=0.21.0,<0.24.0
+tree-sitter-javascript>=0.21.0,<0.24.0
+tree-sitter-typescript>=0.21.0,<0.24.0

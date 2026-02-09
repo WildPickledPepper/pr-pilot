@@ -1,0 +1,44 @@
+# .github/workflows/pr-pilot.yml
+# Add this file to any repo that wants PR-Pilot code review.
+
+name: PR-Pilot Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for co-change analysis
+
+      - name: Cache PR-Pilot knowledge base
+        uses: actions/cache@v4
+        with:
+          path: |
+            chroma_db/
+            call_graphs/
+            co_change_data/
+            clone_data/
+          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp') }}
+          restore-keys: |
+            pr-pilot-${{ github.repository }}-
+
+      - name: Run PR-Pilot
+        uses: your-org/pr-pilot@main
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          deepseek_api_key: ${{ secrets.DEEPSEEK_API_KEY }}
+          openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          # openai_base_url: 'https://your-proxy.com/v1'  # Optional: custom embedding API endpoint
+          analysis_mode: 'two-stage'
+          retrieval_mode: 'precise'
+          top_k: '5'

@@ -1,0 +1,52 @@
+name: 'PR-Pilot Code Review'
+description: 'AI-powered code review with 4-dimensional analysis: semantic (RAG), architectural (call graph), historical (co-change), and clone detection.'
+author: 'PR-Pilot'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API access'
+    required: false
+    default: ${{ github.token }}
+  deepseek_api_key:
+    description: 'DeepSeek API key for LLM analysis'
+    required: true
+  openai_api_key:
+    description: 'OpenAI API key for embeddings'
+    required: true
+  openai_base_url:
+    description: 'Base URL for OpenAI-compatible embedding API'
+    required: false
+    default: 'https://api.openai.com/v1'
+  deepseek_base_url:
+    description: 'Base URL for DeepSeek API'
+    required: false
+    default: 'https://api.deepseek.com/v1'
+  analysis_mode:
+    description: 'Analysis architecture: single or two-stage'
+    required: false
+    default: 'two-stage'
+  retrieval_mode:
+    description: 'Retrieval strategy: diff, fast, or precise'
+    required: false
+    default: 'precise'
+  top_k:
+    description: 'Number of relevant code snippets to retrieve'
+    required: false
+    default: '5'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  env:
+    GITHUB_TOKEN: ${{ inputs.github_token }}
+    DEEPSEEK_API_KEY: ${{ inputs.deepseek_api_key }}
+    OPENAI_API_KEY: ${{ inputs.openai_api_key }}
+    OPENAI_BASE_URL: ${{ inputs.openai_base_url }}
+    DEEPSEEK_BASE_URL: ${{ inputs.deepseek_base_url }}
+    INPUT_ANALYSIS_MODE: ${{ inputs.analysis_mode }}
+    INPUT_RETRIEVAL_MODE: ${{ inputs.retrieval_mode }}
+    INPUT_TOP_K: ${{ inputs.top_k }}
+
+branding:
+  icon: 'eye'
+  color: 'blue'
