@@ -28,7 +28,9 @@ class DeepSeekAnalyzer(AIAnalyzer):
             raise ValueError("DeepSeek API key is not configured.")
         self.client = openai.OpenAI(
             api_key=api_key,
-            base_url=config.DEEPSEEK_BASE_URL
+            base_url=config.DEEPSEEK_BASE_URL,
+            timeout=120.0,
+            max_retries=3
         )
         print("DeepSeek Analyzer initialized.")
 

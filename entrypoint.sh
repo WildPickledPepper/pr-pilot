@@ -20,7 +20,9 @@ git config --global --add safe.directory "${GITHUB_WORKSPACE}"
 
 # --- 2. Export configuration as environment variables ---
 export OPENAI_BASE_URL="${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+OPENAI_BASE_URL="${OPENAI_BASE_URL%/}"
 export DEEPSEEK_BASE_URL="${DEEPSEEK_BASE_URL:-https://api.deepseek.com/v1}"
+DEEPSEEK_BASE_URL="${DEEPSEEK_BASE_URL%/}"
 
 # Use workspace-relative paths so actions/cache can persist them
 WORKSPACE="${GITHUB_WORKSPACE:-.}"
