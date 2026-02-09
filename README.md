@@ -2,11 +2,11 @@
 
 **AI-powered code review for GitHub Pull Requests.**
 
-Four-dimensional analysis: semantic search (RAG), architectural dependency chains, historical co-change patterns, and code clone detection. Supports 7 languages. Runs as a GitHub Action — zero infrastructure, bring your own API keys.
+Four-dimensional analysis: semantic search (RAG), architectural dependency chains, historical co-change patterns, and code clone detection. 16 languages with full AST analysis + universal text fallback for all other files. Runs as a GitHub Action — zero infrastructure, bring your own API keys.
 
 **AI 驱动的 GitHub Pull Request 代码审查工具。**
 
-四维分析引擎：语义检索（RAG）、架构依赖链、历史协同变更、代码克隆检测。支持 7 种编程语言。以 GitHub Action 形式运行——零基础设施，自带 API Key 即可使用。
+四维分析引擎：语义检索（RAG）、架构依赖链、历史协同变更、代码克隆检测。16 种语言深度 AST 分析 + 通用文本兜底覆盖所有文件。以 GitHub Action 形式运行——零基础设施，自带 API Key 即可使用。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -46,7 +46,7 @@ jobs:
             call_graphs/
             co_change_data/
             clone_data/
-          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp') }}
+          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp', '**/*.rs', '**/*.rb', '**/*.php', '**/*.cs', '**/*.kt', '**/*.scala', '**/*.lua', '**/*.sh', '**/*.zig') }}
           restore-keys: |
             pr-pilot-${{ github.repository }}-
 
@@ -80,7 +80,7 @@ jobs:
 | Dimension | What it does | How |
 |-----------|-------------|-----|
 | **Semantic (RAG)** | Finds related code across the entire codebase | Vector similarity search via ChromaDB + OpenAI Embeddings |
-| **Architectural** | Traces function call chains to detect ripple effects | Static call graphs via pyan (Python) and tree-sitter (6 languages) |
+| **Architectural** | Traces function call chains to detect ripple effects | Static call graphs via pyan (Python) and tree-sitter (15 languages) |
 | **Historical** | Warns when frequently co-changed files are missed | Git history mining via PyDriller |
 | **Clone** | Flags duplicated code that should be updated together | PMD/CPD clone detection |
 
@@ -88,17 +88,39 @@ jobs:
 
 ## Supported Languages
 
-| Language | AST Parsing | Call Graph | Extensions |
-|----------|------------|------------|------------|
-| Python | `ast` module | pyan (.dot) | `.py` |
-| C | tree-sitter | tree-sitter (.json) | `.c`, `.h` |
-| C++ | tree-sitter | tree-sitter (.json) | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` |
-| Java | tree-sitter | tree-sitter (.json) | `.java` |
-| Go | tree-sitter | tree-sitter (.json) | `.go` |
-| JavaScript | tree-sitter | tree-sitter (.json) | `.js`, `.jsx`, `.mjs` |
-| TypeScript | tree-sitter | tree-sitter (.json) | `.ts`, `.tsx` |
+### Tier 1 — Full 4D Analysis (16 languages)
 
-Adding a new language requires only a grammar configuration — no new parsing code.
+Deep AST parsing with function-level chunking, call graph generation, and clone detection.
+
+| Language | AST Parsing | Call Graph | Clone Detection | Extensions |
+|----------|------------|------------|-----------------|------------|
+| Python | `ast` module | pyan (.dot) | PMD/CPD | `.py` |
+| C | tree-sitter | tree-sitter (.json) | PMD/CPD | `.c`, `.h` |
+| C++ | tree-sitter | tree-sitter (.json) | PMD/CPD | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` |
+| Java | tree-sitter | tree-sitter (.json) | PMD/CPD | `.java` |
+| Go | tree-sitter | tree-sitter (.json) | PMD/CPD | `.go` |
+| JavaScript | tree-sitter | tree-sitter (.json) | PMD/CPD | `.js`, `.jsx`, `.mjs` |
+| TypeScript | tree-sitter | tree-sitter (.json) | PMD/CPD | `.ts`, `.tsx` |
+| Rust | tree-sitter | tree-sitter (.json) | — | `.rs` |
+| Ruby | tree-sitter | tree-sitter (.json) | PMD/CPD | `.rb` |
+| PHP | tree-sitter | tree-sitter (.json) | PMD/CPD | `.php` |
+| C# | tree-sitter | tree-sitter (.json) | PMD/CPD | `.cs` |
+| Kotlin | tree-sitter | tree-sitter (.json) | PMD/CPD | `.kt`, `.kts` |
+| Scala | tree-sitter | tree-sitter (.json) | PMD/CPD | `.scala` |
+| Lua | tree-sitter | tree-sitter (.json) | PMD/CPD | `.lua` |
+| Bash | tree-sitter | tree-sitter (.json) | — | `.sh`, `.bash` |
+| Zig | tree-sitter | tree-sitter (.json) | — | `.zig` |
+
+### Tier 2 — Universal Text Fallback
+
+All other non-binary text files (Markdown, YAML, TOML, Dart, SQL, config files, etc.) are automatically indexed using paragraph-based chunking. Tier 2 files support:
+
+- **Semantic search (RAG)** — find related content across the codebase
+- **Historical co-change analysis** — detect co-change patterns in git history
+
+Binary files (images, archives, executables, etc.) are automatically skipped.
+
+Data-driven architecture: adding a new Tier 1 language requires only a grammar configuration — no new parsing code.
 
 ---
 
@@ -198,9 +220,9 @@ rules:
 - **LLM**: DeepSeek (OpenAI-compatible API)
 - **Embeddings**: OpenAI text-embedding-3-small
 - **Vector DB**: ChromaDB (local, persistent)
-- **AST Parsing**: Python `ast` + tree-sitter (7 languages)
-- **Call Graphs**: pyan (Python) + tree-sitter (C/C++/Java/Go/JS/TS)
-- **Clone Detection**: PMD/CPD
+- **AST Parsing**: Python `ast` + tree-sitter (15 languages)
+- **Call Graphs**: pyan (Python) + tree-sitter (15 languages)
+- **Clone Detection**: PMD/CPD (13 languages)
 - **History Analysis**: PyDriller
 - **CI/CD**: GitHub Actions + Docker
 
@@ -246,7 +268,7 @@ jobs:
             call_graphs/
             co_change_data/
             clone_data/
-          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp') }}
+          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp', '**/*.rs', '**/*.rb', '**/*.php', '**/*.cs', '**/*.kt', '**/*.scala', '**/*.lua', '**/*.sh', '**/*.zig') }}
           restore-keys: |
             pr-pilot-${{ github.repository }}-
 
@@ -280,25 +302,47 @@ jobs:
 | 维度 | 功能 | 实现方式 |
 |------|------|---------|
 | **语义分析（RAG）** | 在全仓库中检索与 PR 变更语义相关的代码 | ChromaDB 向量数据库 + OpenAI Embedding |
-| **架构分析（依赖链）** | 追踪函数调用链，检测变更的波及效应 | pyan（Python）+ tree-sitter（6 种语言）静态调用图 |
+| **架构分析（依赖链）** | 追踪函数调用链，检测变更的波及效应 | pyan（Python）+ tree-sitter（15 种语言）静态调用图 |
 | **历史分析（协同变更）** | 警告经常一起修改但这次遗漏的文件 | PyDriller 挖掘 Git 提交历史 |
-| **克隆分析（代码基因）** | 标记应该同步更新的重复代码 | PMD/CPD 代码克隆检测 |
+| **克隆分析（代码基因）** | 标记应该同步更新的重复代码 | PMD/CPD 代码克隆检测（13 种语言） |
 
 ---
 
 ## 支持语言
 
-| 语言 | AST 解析 | 调用图 | 文件扩展名 |
-|------|----------|--------|-----------|
-| Python | `ast` 模块 | pyan (.dot) | `.py` |
-| C | tree-sitter | tree-sitter (.json) | `.c`, `.h` |
-| C++ | tree-sitter | tree-sitter (.json) | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` |
-| Java | tree-sitter | tree-sitter (.json) | `.java` |
-| Go | tree-sitter | tree-sitter (.json) | `.go` |
-| JavaScript | tree-sitter | tree-sitter (.json) | `.js`, `.jsx`, `.mjs` |
-| TypeScript | tree-sitter | tree-sitter (.json) | `.ts`, `.tsx` |
+### Tier 1 — 深度 4D 分析（16 种语言）
 
-数据驱动架构：添加新语言只需注册一份 grammar 配置，无需编写新的解析代码。
+基于 AST 的函数级分块，支持调用图生成和克隆检测。
+
+| 语言 | AST 解析 | 调用图 | 克隆检测 | 文件扩展名 |
+|------|----------|--------|---------|-----------|
+| Python | `ast` 模块 | pyan (.dot) | PMD/CPD | `.py` |
+| C | tree-sitter | tree-sitter (.json) | PMD/CPD | `.c`, `.h` |
+| C++ | tree-sitter | tree-sitter (.json) | PMD/CPD | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hxx` |
+| Java | tree-sitter | tree-sitter (.json) | PMD/CPD | `.java` |
+| Go | tree-sitter | tree-sitter (.json) | PMD/CPD | `.go` |
+| JavaScript | tree-sitter | tree-sitter (.json) | PMD/CPD | `.js`, `.jsx`, `.mjs` |
+| TypeScript | tree-sitter | tree-sitter (.json) | PMD/CPD | `.ts`, `.tsx` |
+| Rust | tree-sitter | tree-sitter (.json) | — | `.rs` |
+| Ruby | tree-sitter | tree-sitter (.json) | PMD/CPD | `.rb` |
+| PHP | tree-sitter | tree-sitter (.json) | PMD/CPD | `.php` |
+| C# | tree-sitter | tree-sitter (.json) | PMD/CPD | `.cs` |
+| Kotlin | tree-sitter | tree-sitter (.json) | PMD/CPD | `.kt`, `.kts` |
+| Scala | tree-sitter | tree-sitter (.json) | PMD/CPD | `.scala` |
+| Lua | tree-sitter | tree-sitter (.json) | PMD/CPD | `.lua` |
+| Bash | tree-sitter | tree-sitter (.json) | — | `.sh`, `.bash` |
+| Zig | tree-sitter | tree-sitter (.json) | — | `.zig` |
+
+### Tier 2 — 通用文本兜底
+
+所有其他非二进制文本文件（Markdown、YAML、TOML、Dart、SQL、配置文件等）会自动以段落分块方式索引。Tier 2 文件支持：
+
+- **语义检索（RAG）** — 在全仓库中查找相关内容
+- **历史协同变更分析** — 检测 Git 历史中的协同变更模式
+
+二进制文件（图片、压缩包、可执行文件等）会自动跳过。
+
+数据驱动架构：添加新 Tier 1 语言只需注册一份 grammar 配置，无需编写新的解析代码。
 
 ---
 
@@ -383,9 +427,9 @@ rules:
 - **LLM**: DeepSeek（兼容 OpenAI API 格式）
 - **Embedding**: OpenAI text-embedding-3-small
 - **向量数据库**: ChromaDB（本地持久化）
-- **AST 解析**: Python `ast` + tree-sitter（7 种语言）
-- **调用图**: pyan（Python）+ tree-sitter（C/C++/Java/Go/JS/TS）
-- **克隆检测**: PMD/CPD
+- **AST 解析**: Python `ast` + tree-sitter（15 种语言）
+- **调用图**: pyan（Python）+ tree-sitter（15 种语言）
+- **克隆检测**: PMD/CPD（13 种语言）
 - **历史分析**: PyDriller
 - **CI/CD**: GitHub Actions + Docker
 

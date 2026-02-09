@@ -28,7 +28,7 @@ jobs:
             call_graphs/
             co_change_data/
             clone_data/
-          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp') }}
+          key: pr-pilot-${{ github.repository }}-${{ hashFiles('**/*.py', '**/*.java', '**/*.go', '**/*.js', '**/*.ts', '**/*.c', '**/*.cpp', '**/*.rs', '**/*.rb', '**/*.php', '**/*.cs', '**/*.kt', '**/*.scala', '**/*.lua', '**/*.sh', '**/*.zig') }}
           restore-keys: |
             pr-pilot-${{ github.repository }}-
 
